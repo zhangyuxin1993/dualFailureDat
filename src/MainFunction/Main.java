@@ -27,25 +27,25 @@ public class Main {
 		HashMap<NodePair, LinearRoute> WorkRouteList = new HashMap<NodePair, LinearRoute>();
 		HashMap<NodePair, Integer> nodepairDemand = new HashMap<NodePair, Integer>();
 
-		String topologyName = "G:/Topology/10.csv";
+		String topologyName = "G:/Topology/6.csv";
 		myLayer.readTopology(topologyName);
 		myLayer.generateNodepairs();
 
-		String OutFileName = "F:\\programFile\\10node.dat";
+		String OutFileName = "F:\\programFile\\6node.dat";
 		Main main = new Main();// start
 		// main.setSpan(myLayer, OutFileName);
-//		nodepairlist = main.NodepairRadom(myLayer, OutFileName);
+		nodepairlist = main.NodepairRadom(myLayer, OutFileName);
 		int AE = 0;// 表示不删除环
-//		cyclelist = main.CycleGenerate(myLayer, AE, OutFileName);// 如果不需要减少环
+		cyclelist = main.CycleGenerate(myLayer, AE, OutFileName);// 如果不需要减少环
 																	// 则将AE设置为0
 
 		// parameter
-//		 main.ConstantOut(OutFileName);
-//		nodepairDemand = main.DemandRadom(nodepairlist, OutFileName);
-//		WorkRouteList = main.OnorStrad(myLayer, nodepairlist, cyclelist, nodepairDemand, OutFileName);
-//		 main.LinkOnCycle(myLayer, cyclelist,OutFileName);
+		 main.ConstantOut(OutFileName);
+		nodepairDemand = main.DemandRadom(nodepairlist, OutFileName);
+		WorkRouteList = main.OnorStrad(myLayer, nodepairlist, cyclelist, nodepairDemand, OutFileName);
+		 main.LinkOnCycle(myLayer, cyclelist,OutFileName);
 
-//		 main.rival(WorkRouteList,OutFileName);
+		 main.rival(WorkRouteList,OutFileName);
 		main.TwoDemandOnOneCycle(myLayer,WorkRouteList, cyclelist, OutFileName);
 		System.out.println("Finish");
 	}
@@ -56,62 +56,50 @@ public class Main {
 		NodelistCompare nc = new NodelistCompare();
 		CycleOutput Cycleout = new CycleOutput();
 		int share = 0;
-	//debug
-		ReadFile rf=new ReadFile();
-		ArrayList<NodePair> nodepairlist = new ArrayList<NodePair>();
-		nodepairlist=rf.readDemand(mylayer, "D:/cost239137circle.csv");
-		ArrayList<Node> nodelistofcycle=new ArrayList<Node>();
-		
-		Node node0 = mylayer.getNodelist().get("N0");
-		Node node1 = mylayer.getNodelist().get("N1");
-		Node node2 = mylayer.getNodelist().get("N4");
-		Node node3 = mylayer.getNodelist().get("N3");
-		Node node4 = mylayer.getNodelist().get("N7");
-		Node node5 = mylayer.getNodelist().get("N6");
-		Node node6 = mylayer.getNodelist().get("N2");
-		
-		nodelistofcycle.add(node0);
-		nodelistofcycle.add(node1);
-		nodelistofcycle.add(node2);
-		nodelistofcycle.add(node3);
-		nodelistofcycle.add(node4);
-		nodelistofcycle.add(node5);
-		nodelistofcycle.add(node6);
-		for(Node node:nodelistofcycle){
-			System.out.println(node.getName());
-		}
-		for(NodePair nodePair1 :nodepairlist ){
-		
-		
 
-		
 		out.filewrite(OutFileName, "param noshare :=");
-//		 for (NodePair nodePair1 : WorkRouteList.keySet()) { 
+		 for (NodePair nodePair1 : WorkRouteList.keySet()) { 
 			Node src1 = nodePair1.getSrcNode();
 			Node des1 = nodePair1.getDesNode();
 
-			 for(NodePair nodePair2 :nodepairlist ){//debug
-					
-//			for (NodePair nodePair2 : WorkRouteList.keySet()) {
+			for (NodePair nodePair2 : WorkRouteList.keySet()) {
 				Node src2 = nodePair2.getSrcNode();
 				Node des2 = nodePair2.getDesNode();
-				System.out.println(src1.getName()+"-"+des1.getName());
-				System.out.println(src2.getName()+"-"+des2.getName());
+//				System.out.println("nodepair1:  "+src1.getName()+"-"+des1.getName());
+//				System.out.println("nodepair2:  "+src2.getName()+"-"+des2.getName());
 			
 				if (nodePair1.getName().equals(nodePair2.getName()))
 					continue;
-
+		
 				LinearRoute workroute1 = WorkRouteList.get(nodePair1);
 				LinearRoute workroute2 = WorkRouteList.get(nodePair2);
+//				workroute1.OutputRoute_node(workroute1);
+//				workroute2.OutputRoute_node(workroute2);
 				int cross = nc.nodelistcompare(workroute1.getNodelist(), workroute2.getNodelist());
 				
 				for (Cycle cycle : cyclelist) {
+//					for(Node node:cycle.getNodelist()){
+//						System.out.print(node.getName()+"-");
+//					}
+//						System.out.println();
 					share=0;
 					out.filewrite_without(OutFileName, nodePair1.getName() + "   ");
 					out.filewrite_without(OutFileName, nodePair2.getName() + "   ");
 					Cycleout.cycleoutput(cycle, OutFileName);
 					out.filewrite_without(OutFileName, "    ");
 					// 判断
+					int nodeandcyclecross = nc.nodelistcompare(workroute1.getNodelist(), cycle.getNodelist());
+					if (nodeandcyclecross == 1){
+						out.filewrite(OutFileName, share);
+						continue;
+					}
+					int nodeandcyclecross2 = nc.nodelistcompare(workroute2.getNodelist(), cycle.getNodelist());
+					if (nodeandcyclecross2 == 1){
+						out.filewrite(OutFileName, share);
+						continue;
+					}
+					
+					
 					if (cross == 1) {// 两个节点对有共同容量，不能被一个环保护
 						out.filewrite(OutFileName, share);
 						continue;
@@ -126,6 +114,10 @@ public class Main {
 					int indexofdes1 = cycle.getNodelist().indexOf(des1);
 					int indexofsrc2 = cycle.getNodelist().indexOf(src2);
 					int indexofdes2 = cycle.getNodelist().indexOf(des2);
+					if(Math.abs(indexofsrc1-indexofdes1)==1||Math.abs(indexofsrc2-indexofdes2)==1){
+						out.filewrite(OutFileName, share);
+						continue;
+					}
 					if (indexofsrc1 == indexofsrc2 || indexofsrc1 == indexofdes2 || indexofdes1 == indexofsrc2
 							|| indexofdes1 == indexofdes2) {
 						// 两个节点对有一个共同节点 那么该环可以保护
@@ -138,7 +130,18 @@ public class Main {
 						out.filewrite(OutFileName, share);
 						continue;
 					}
+					else if(indexofsrc1<indexofdes1 &&indexofdes1<indexofsrc2&&indexofdes2<indexofdes1 ){
+						//一个节点对的其中一个节点在另一个节点对之间 环上容量需要累加
+						share=1;
+						out.filewrite(OutFileName, share);
+						continue;
+					}
 					else if(indexofsrc1>indexofdes1 &&indexofsrc2<indexofsrc1&&indexofsrc2>indexofdes1){
+						share=1;
+						out.filewrite(OutFileName, share);
+						continue;
+					}
+					else if(indexofsrc1>indexofdes1 &&indexofdes2<indexofsrc1&&indexofdes2>indexofdes1){
 						share=1;
 						out.filewrite(OutFileName, share);
 						continue;
@@ -222,10 +225,17 @@ public class Main {
 
 			WorkRouteList.put(nodePair, WorkRoute);
 			out.filewrite_without(workroutefilename, nodePair.getName() + "     ");
-			WorkRoute.OutputRoute_node(WorkRoute, workroutefilename);
+//			WorkRoute.OutputRoute_node(WorkRoute, workroutefilename);
 			out.filewrite(workroutefilename, "     ");
 
 			for (Cycle cycle : cyclelist) {
+				//debug
+//				System.out.print("节点对： "+nodePair.getName());
+//				System.out.print("环: ");
+//				for(Node node:cycle.getNodelist()){
+//				System.out.print(node.getName()+"-");
+//			}
+//				System.out.println();
 				out.filewrite_without(OutFileName, nodePair.getName() + "     ");
 				int relation = 0;
 				CycleOutput Cycleout = new CycleOutput();
@@ -239,7 +249,7 @@ public class Main {
 				NodelistCompare nc = new NodelistCompare();
 				int cross = nc.nodelistcompare(WorkRoute.getNodelist(), cycle.getNodelist());
 				if (cross == 1)
-					relation = 0;// oncycle时为1，此时不考虑oncycle情况，故为0
+					relation = 0; // oncycle时为1，此时不考虑oncycle情况，故为0
 				else if (cross == 0)
 					relation = 1; // strad时应该为2，此时只考虑straddle情况，故表示可以保护，为1
 				out.filewrite(OutFileName, relation);
@@ -273,7 +283,7 @@ public class Main {
 		out.filewrite(OutFileName, 100000);
 		out.filewrite(OutFileName, ";");
 		out.filewrite(OutFileName, "param MiniConstant:=");
-		out.filewrite(OutFileName, "0.00001");
+		out.filewrite(OutFileName, "0.0001");
 		out.filewrite(OutFileName, ";");
 	}
 

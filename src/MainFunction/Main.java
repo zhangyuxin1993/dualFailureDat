@@ -24,6 +24,7 @@ public class Main {
 		ArrayList<NodePair> nodepairlist = new ArrayList<NodePair>();
 		ArrayList<Cycle> cyclelist = new ArrayList<Cycle>();
 		HashMap<NodePair, LinearRoute> WorkRouteList = new HashMap<NodePair, LinearRoute>();
+		HashMap<NodePair, Integer> nodepairDemand=new HashMap<NodePair, Integer>();
 
 		String topologyName = "G:/Topology/10.csv";
 		myLayer.readTopology(topologyName);
@@ -39,8 +40,8 @@ public class Main {
 
 		// parameter
 		main.ConstantOut(OutFileName);
-		main.DemandRadom(nodepairlist, OutFileName);
-		WorkRouteList = main.OnorStrad(myLayer, nodepairlist, cyclelist, OutFileName);
+		nodepairDemand=main.DemandRadom(nodepairlist, OutFileName);
+		WorkRouteList = main.OnorStrad(myLayer, nodepairlist, cyclelist, nodepairDemand,OutFileName);
 		main.LinkOnCycle(myLayer, cyclelist,OutFileName);
 
 		main.rival(WorkRouteList,OutFileName);
@@ -62,12 +63,8 @@ public class Main {
 					continue;
 				out.filewrite_without(OutFileName, nodePair.getName() + "    ");
 				out.filewrite_without(OutFileName, ComnodePair.getName() + "    ");
-				// System.out.println(nodePair.getName());
-				// System.out.println(ComnodePair.getName());
 				LinearRoute workroute1 = WorkRouteList.get(nodePair);
-				// workroute1.OutputRoute_link(workroute1);
 				LinearRoute workroute2 = WorkRouteList.get(ComnodePair);
-				// workroute2.OutputRoute_link(workroute2);
 				int cross = nc.nodelistcompare(workroute1.getNodelist(), workroute2.getNodelist());
 				out.filewrite(OutFileName, cross);
 			}
@@ -102,7 +99,8 @@ public class Main {
 	}
 
 	public HashMap<NodePair, LinearRoute> OnorStrad(Layer mylayer, ArrayList<NodePair> nodepairlist,
-			ArrayList<Cycle> cyclelist, String OutFileName) {
+			ArrayList<Cycle> cyclelist, HashMap<NodePair, Integer> nodepairDemand,String OutFileName) {
+		
 		HashMap<NodePair, LinearRoute> WorkRouteList = new HashMap<NodePair, LinearRoute>();
 		RouteSearching rs = new RouteSearching();
 		SearchConstraint sc = new SearchConstraint();
@@ -110,17 +108,20 @@ public class Main {
 
 		File_output out = new File_output();
 		out.filewrite(OutFileName, "param relation :=");
+		int WorkCapacity=0;
 		for (NodePair nodePair : nodepairlist) {
 			Node srcnode = nodePair.getSrcNode();
 			Node desnode = nodePair.getDesNode();
 			LinearRoute WorkRoute = new LinearRoute(null, 0, null);
 			rs.Dijkstra(srcnode, desnode, mylayer, WorkRoute, sc);
-
+			int demand=nodepairDemand.get(nodePair);
+			WorkCapacity=WorkCapacity+demand*WorkRoute.getLinklist().size();
+			
 			WorkRouteList.put(nodePair, WorkRoute);
 			out.filewrite_without(workroutefilename, nodePair.getName() + "     ");
 			WorkRoute.OutputRoute_node(WorkRoute, workroutefilename);
 			out.filewrite(workroutefilename, "     ");
-
+			
 			for (Cycle cycle : cyclelist) {
 				out.filewrite_without(OutFileName, nodePair.getName() + "     ");
 				int relation = 0;
@@ -141,12 +142,13 @@ public class Main {
 				out.filewrite(OutFileName, relation);
 			}
 		}
-
+		out.filewrite(workroutefilename, WorkCapacity);
 		out.filewrite(OutFileName, ";");
 		return WorkRouteList;
 	}
 
-	public void DemandRadom(ArrayList<NodePair> nodepairlist, String OutFileName) {
+	public HashMap<NodePair, Integer> DemandRadom(ArrayList<NodePair> nodepairlist, String OutFileName) {
+		HashMap<NodePair, Integer> nodepairDemand=new HashMap<NodePair, Integer>();
 		randomfunction radom = new randomfunction();
 		File_output out = new File_output();
 		out.filewrite(OutFileName, "param demand :=");
@@ -154,9 +156,11 @@ public class Main {
 		for (NodePair nodePair : nodepairlist) {
 			out.filewrite_without(OutFileName, nodePair.getName() + "    ");
 			int demand = radom.Num_random(1, 99)[0] + 1;
+			nodepairDemand.put(nodePair, demand);
 			out.filewrite(OutFileName, demand);
 		}
 		out.filewrite(OutFileName, ";");
+		return nodepairDemand;
 
 	}
 

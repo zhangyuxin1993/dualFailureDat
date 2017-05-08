@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import file.File_output;
+import file.ReadFile;
 import graphalgorithms.RouteSearching;
 import graphalgorithms.SearchConstraint;
 import network.Layer;
@@ -24,32 +25,134 @@ public class Main {
 		ArrayList<NodePair> nodepairlist = new ArrayList<NodePair>();
 		ArrayList<Cycle> cyclelist = new ArrayList<Cycle>();
 		HashMap<NodePair, LinearRoute> WorkRouteList = new HashMap<NodePair, LinearRoute>();
-		HashMap<NodePair, Integer> nodepairDemand=new HashMap<NodePair, Integer>();
+		HashMap<NodePair, Integer> nodepairDemand = new HashMap<NodePair, Integer>();
 
 		String topologyName = "G:/Topology/10.csv";
 		myLayer.readTopology(topologyName);
 		myLayer.generateNodepairs();
 
 		String OutFileName = "F:\\programFile\\10node.dat";
-		Main main = new Main();
-		main.setSpan(myLayer, OutFileName);
-		nodepairlist = main.NodepairRadom(myLayer, OutFileName);
-		int AE = 0;
-		cyclelist = main.CycleGenerate(myLayer, AE, OutFileName);// 如果不需要减少环
+		Main main = new Main();// start
+		// main.setSpan(myLayer, OutFileName);
+//		nodepairlist = main.NodepairRadom(myLayer, OutFileName);
+		int AE = 0;// 表示不删除环
+//		cyclelist = main.CycleGenerate(myLayer, AE, OutFileName);// 如果不需要减少环
 																	// 则将AE设置为0
 
 		// parameter
-		main.ConstantOut(OutFileName);
-		nodepairDemand=main.DemandRadom(nodepairlist, OutFileName);
-		WorkRouteList = main.OnorStrad(myLayer, nodepairlist, cyclelist, nodepairDemand,OutFileName);
-		main.LinkOnCycle(myLayer, cyclelist,OutFileName);
+//		 main.ConstantOut(OutFileName);
+//		nodepairDemand = main.DemandRadom(nodepairlist, OutFileName);
+//		WorkRouteList = main.OnorStrad(myLayer, nodepairlist, cyclelist, nodepairDemand, OutFileName);
+//		 main.LinkOnCycle(myLayer, cyclelist,OutFileName);
 
-		main.rival(WorkRouteList,OutFileName);
-
+//		 main.rival(WorkRouteList,OutFileName);
+		main.TwoDemandOnOneCycle(myLayer,WorkRouteList, cyclelist, OutFileName);
 		System.out.println("Finish");
 	}
 
-	public void rival(HashMap<NodePair, LinearRoute> WorkRouteList,String OutFileName) {
+	public void TwoDemandOnOneCycle(Layer mylayer,HashMap<NodePair, LinearRoute> WorkRouteList, ArrayList<Cycle> cyclelist,
+			String OutFileName) {
+		File_output out = new File_output();
+		NodelistCompare nc = new NodelistCompare();
+		CycleOutput Cycleout = new CycleOutput();
+		int share = 0;
+	//debug
+		ReadFile rf=new ReadFile();
+		ArrayList<NodePair> nodepairlist = new ArrayList<NodePair>();
+		nodepairlist=rf.readDemand(mylayer, "D:/cost239137circle.csv");
+		ArrayList<Node> nodelistofcycle=new ArrayList<Node>();
+		
+		Node node0 = mylayer.getNodelist().get("N0");
+		Node node1 = mylayer.getNodelist().get("N1");
+		Node node2 = mylayer.getNodelist().get("N4");
+		Node node3 = mylayer.getNodelist().get("N3");
+		Node node4 = mylayer.getNodelist().get("N7");
+		Node node5 = mylayer.getNodelist().get("N6");
+		Node node6 = mylayer.getNodelist().get("N2");
+		
+		nodelistofcycle.add(node0);
+		nodelistofcycle.add(node1);
+		nodelistofcycle.add(node2);
+		nodelistofcycle.add(node3);
+		nodelistofcycle.add(node4);
+		nodelistofcycle.add(node5);
+		nodelistofcycle.add(node6);
+		for(Node node:nodelistofcycle){
+			System.out.println(node.getName());
+		}
+		for(NodePair nodePair1 :nodepairlist ){
+		
+		
+
+		
+		out.filewrite(OutFileName, "param noshare :=");
+//		 for (NodePair nodePair1 : WorkRouteList.keySet()) { 
+			Node src1 = nodePair1.getSrcNode();
+			Node des1 = nodePair1.getDesNode();
+
+			 for(NodePair nodePair2 :nodepairlist ){//debug
+					
+//			for (NodePair nodePair2 : WorkRouteList.keySet()) {
+				Node src2 = nodePair2.getSrcNode();
+				Node des2 = nodePair2.getDesNode();
+				System.out.println(src1.getName()+"-"+des1.getName());
+				System.out.println(src2.getName()+"-"+des2.getName());
+			
+				if (nodePair1.getName().equals(nodePair2.getName()))
+					continue;
+
+				LinearRoute workroute1 = WorkRouteList.get(nodePair1);
+				LinearRoute workroute2 = WorkRouteList.get(nodePair2);
+				int cross = nc.nodelistcompare(workroute1.getNodelist(), workroute2.getNodelist());
+				
+				for (Cycle cycle : cyclelist) {
+					share=0;
+					out.filewrite_without(OutFileName, nodePair1.getName() + "   ");
+					out.filewrite_without(OutFileName, nodePair2.getName() + "   ");
+					Cycleout.cycleoutput(cycle, OutFileName);
+					out.filewrite_without(OutFileName, "    ");
+					// 判断
+					if (cross == 1) {// 两个节点对有共同容量，不能被一个环保护
+						out.filewrite(OutFileName, share);
+						continue;
+					}
+					if (!(cycle.getNodelist().contains(src1) && cycle.getNodelist().contains(des1)
+							&& cycle.getNodelist().contains(src2) && cycle.getNodelist().contains(des2))) {
+						// 环上不包含这四个节点时
+						out.filewrite(OutFileName, share);
+						continue;
+					}
+					int indexofsrc1 = cycle.getNodelist().indexOf(src1);
+					int indexofdes1 = cycle.getNodelist().indexOf(des1);
+					int indexofsrc2 = cycle.getNodelist().indexOf(src2);
+					int indexofdes2 = cycle.getNodelist().indexOf(des2);
+					if (indexofsrc1 == indexofsrc2 || indexofsrc1 == indexofdes2 || indexofdes1 == indexofsrc2
+							|| indexofdes1 == indexofdes2) {
+						// 两个节点对有一个共同节点 那么该环可以保护
+						out.filewrite(OutFileName, share);
+						continue;
+					}
+					if(indexofsrc1<indexofdes1 &&indexofsrc1<indexofsrc2&&indexofsrc2<indexofdes1 ){
+						//一个节点对的其中一个节点在另一个节点对之间 环上容量需要累加
+						share=1;
+						out.filewrite(OutFileName, share);
+						continue;
+					}
+					else if(indexofsrc1>indexofdes1 &&indexofsrc2<indexofsrc1&&indexofsrc2>indexofdes1){
+						share=1;
+						out.filewrite(OutFileName, share);
+						continue;
+					}
+					out.filewrite(OutFileName, share);
+					
+				}
+			}
+		}
+	 
+			out.filewrite(OutFileName, ";");
+	}
+
+	public void rival(HashMap<NodePair, LinearRoute> WorkRouteList, String OutFileName) {
 		File_output out = new File_output();
 		NodelistCompare nc = new NodelistCompare();
 
@@ -99,8 +202,8 @@ public class Main {
 	}
 
 	public HashMap<NodePair, LinearRoute> OnorStrad(Layer mylayer, ArrayList<NodePair> nodepairlist,
-			ArrayList<Cycle> cyclelist, HashMap<NodePair, Integer> nodepairDemand,String OutFileName) {
-		
+			ArrayList<Cycle> cyclelist, HashMap<NodePair, Integer> nodepairDemand, String OutFileName) {
+
 		HashMap<NodePair, LinearRoute> WorkRouteList = new HashMap<NodePair, LinearRoute>();
 		RouteSearching rs = new RouteSearching();
 		SearchConstraint sc = new SearchConstraint();
@@ -108,20 +211,20 @@ public class Main {
 
 		File_output out = new File_output();
 		out.filewrite(OutFileName, "param relation :=");
-		int WorkCapacity=0;
+		int WorkCapacity = 0;
 		for (NodePair nodePair : nodepairlist) {
 			Node srcnode = nodePair.getSrcNode();
 			Node desnode = nodePair.getDesNode();
 			LinearRoute WorkRoute = new LinearRoute(null, 0, null);
 			rs.Dijkstra(srcnode, desnode, mylayer, WorkRoute, sc);
-			int demand=nodepairDemand.get(nodePair);
-			WorkCapacity=WorkCapacity+demand*WorkRoute.getLinklist().size();
-			
+			int demand = nodepairDemand.get(nodePair);
+			WorkCapacity = WorkCapacity + demand * WorkRoute.getLinklist().size();
+
 			WorkRouteList.put(nodePair, WorkRoute);
 			out.filewrite_without(workroutefilename, nodePair.getName() + "     ");
 			WorkRoute.OutputRoute_node(WorkRoute, workroutefilename);
 			out.filewrite(workroutefilename, "     ");
-			
+
 			for (Cycle cycle : cyclelist) {
 				out.filewrite_without(OutFileName, nodePair.getName() + "     ");
 				int relation = 0;
@@ -136,9 +239,9 @@ public class Main {
 				NodelistCompare nc = new NodelistCompare();
 				int cross = nc.nodelistcompare(WorkRoute.getNodelist(), cycle.getNodelist());
 				if (cross == 1)
-					relation = 1;
+					relation = 0;// oncycle时为1，此时不考虑oncycle情况，故为0
 				else if (cross == 0)
-					relation = 2;
+					relation = 1; // strad时应该为2，此时只考虑straddle情况，故表示可以保护，为1
 				out.filewrite(OutFileName, relation);
 			}
 		}
@@ -148,7 +251,7 @@ public class Main {
 	}
 
 	public HashMap<NodePair, Integer> DemandRadom(ArrayList<NodePair> nodepairlist, String OutFileName) {
-		HashMap<NodePair, Integer> nodepairDemand=new HashMap<NodePair, Integer>();
+		HashMap<NodePair, Integer> nodepairDemand = new HashMap<NodePair, Integer>();
 		randomfunction radom = new randomfunction();
 		File_output out = new File_output();
 		out.filewrite(OutFileName, "param demand :=");

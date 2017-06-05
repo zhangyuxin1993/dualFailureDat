@@ -177,10 +177,8 @@ public class LinearRoute extends Subgraph {
 			int i = 0;
 			int k = newroute.getNodelist().size();
 			for (i = 0; i < k - 1; i++){
-//				System.out.print(newroute.getNodelist().get(i).getName() + "-");
 				filewrite.filewrite_without(filename, newroute.getNodelist().get(i).getName() + "-");
 			}
-//				System.out.println(newroute.getNodelist().get(i).getName());
 				filewrite.filewrite_without(filename, newroute.getNodelist().get(i).getName());							
 		}
 		

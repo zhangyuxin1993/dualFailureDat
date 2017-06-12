@@ -28,15 +28,19 @@ public class Main {
 		ArrayList<NodePairProtect> NodeAndPro = new ArrayList<NodePairProtect>();
 		ArrayList<Link> linklist = new ArrayList<Link>();
 
-		String topologyName = "G:/Topology/10.csv";
+		String topologyName = "G:/Topology/5.csv";
 		// String topologyName = "E:/ZYX/Topology/10.csv";
 		myLayer.readTopology(topologyName);
 		myLayer.generateNodepairs();
 
-		String OutFileName = "F:\\programFile\\DualFailure\\10.dat";
+		String OutFileName = "F:\\programFile\\DualFailure\\5.dat";
 		Main main = new Main();// start
 		linklist = main.setSpan(myLayer, OutFileName);
-		nodepairlist = main.NodepairRadom(myLayer, OutFileName);
+//		nodepairlist = main.NodepairRadom(myLayer, OutFileName);
+		File_output fo=new File_output();
+		nodepairlist=fo.readDemand(myLayer, "D:/52.csv");
+		main.NodePairAndDemandOut(nodepairlist, OutFileName);
+		
 		int AE = 0;// 表示不删除环
 		cyclelist = main.CycleGenerate(myLayer, AE, OutFileName);// 如果不需要减少环
 																	// 则将AE设置为0
@@ -47,7 +51,13 @@ public class Main {
 		 
 		// parameter
 		main.ConstantOut(OutFileName);
-		nodepairDemand = main.DemandRadom(nodepairlist, OutFileName);
+//		nodepairDemand = main.DemandRadom(nodepairlist, OutFileName);
+		/*以下为附加==可以是p-cycle也通过读取业务而不自己产生业务
+		 * 
+		 */
+		for(NodePair nodepair:nodepairlist){
+			nodepairDemand.put(nodepair, nodepair.getSlotsnum());		
+		}
 		WorkRouteList = main.OnorStrad(myLayer, nodepairlist, cyclelist, nodepairDemand, OutFileName);
 		main.LinkOnCycle(myLayer, cyclelist, OutFileName);
 
@@ -59,7 +69,25 @@ public class Main {
 
 		System.out.println("Finish");
 	}
+public void NodePairAndDemandOut(ArrayList<NodePair> nodepairlist,String OutFileName){
+	File_output out = new File_output();
+	out.filewrite(OutFileName, "set D:=");
 
+	for (NodePair nodepair : nodepairlist) {
+		out.filewrite(OutFileName, nodepair.getName());
+	}
+	out.filewrite(OutFileName, ";");
+	
+	out.filewrite(OutFileName, "param demand :=");
+
+	for (NodePair nodepair : nodepairlist) {
+		out.filewrite_without(OutFileName, nodepair.getName()+"    ");
+		out.filewrite(OutFileName, nodepair.getSlotsnum());
+	}
+	out.filewrite(OutFileName, ";");
+	
+}
+	
 	public void FailureLinkOnCycle(ArrayList<NodePairProtect> NodeAndPro, ArrayList<Link> linklist,
 			String OutFileName) {
 		File_output out = new File_output();
@@ -77,7 +105,7 @@ public class Main {
 				nodelist.add(nodeB);
 				out.filewrite(OutFileName,"set FailureLinkOnCycle [" + nodepair.getName() + "," + link.getName() + "]:=");
 				for (Cycle cycle : npp.getcyclelist()) {
-					CO.cycleoutput(cycle, "F:\\programFile\\DualFailure\\test.dat");
+//					CO.cycleoutput(cycle, "F:\\programFile\\DualFailure\\test.dat");
 					
 					int cross = nc.nodelistcompare(cycle.getNodelist(), nodelist);
 					if (cross == 1) {
